@@ -10,5 +10,8 @@ from . offline import (
     iplot,
     iplot_mpl,
     plot,
-    plot_mpl
+    plot_mpl,
+    get_plotlyjs,
+    get_resize_script,
+    plot_html
 )

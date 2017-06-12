@@ -41,6 +41,17 @@ def get_plotlyjs():
     plotlyjs = resource_string('plotly', path).decode('utf-8')
     return plotlyjs
 
+
+def get_resize_script(plotdivid):
+    return (
+        ''
+        '<script type="text/javascript">'
+        'window.addEventListener("resize", function(){{'
+        'Plotly.Plots.resize(document.getElementById("{id}"));}});'
+        '</script>'
+    ).format(id=plotdivid)
+
+
 def get_image_download_script(caller):
     """
     This function will return a script that will download an image of a Plotly
@@ -148,8 +159,8 @@ def init_notebook_mode(connected=False):
     __PLOTLY_OFFLINE_INITIALIZED = True
 
 
-def _plot_html(figure_or_data, config, validate, default_width,
-               default_height, global_requirejs):
+def plot_html(figure_or_data, config, validate, default_width,
+               default_height, global_requirejs, plotdivid=None):
     # force no validation if frames is in the call
     # TODO - add validation for frames in call - #605
     if 'frames' in figure_or_data:
@@ -178,7 +189,9 @@ def _plot_html(figure_or_data, config, validate, default_width,
     else:
         height = str(height) + 'px'
 
-    plotdivid = uuid.uuid4()
+    if plotdivid is None:
+        plotdivid = uuid.uuid4()
+
     jdata = _json.dumps(figure.get('data', []), cls=utils.PlotlyJSONEncoder)
     jlayout = _json.dumps(figure.get('layout', {}),
                           cls=utils.PlotlyJSONEncoder)
@@ -338,7 +351,7 @@ def iplot(figure_or_data, show_link=True, link_text='Export to plot.ly',
     config.setdefault('showLink', show_link)
     config.setdefault('linkText', link_text)
 
-    plot_html, plotdivid, width, height = _plot_html(
+    plot_html, plotdivid, width, height = plot_html(
         figure_or_data, config, validate, '100%', 525, True
     )
 
@@ -464,19 +477,13 @@ def plot(figure_or_data, show_link=True, link_text='Export to plot.ly',
     config.setdefault('showLink', show_link)
     config.setdefault('linkText', link_text)
 
-    plot_html, plotdivid, width, height = _plot_html(
+    plot_html, plotdivid, width, height = plot_html(
         figure_or_data, config, validate,
         '100%', '100%', global_requirejs=False)
 
     resize_script = ''
     if width == '100%' or height == '100%':
-        resize_script = (
-            ''
-            '<script type="text/javascript">'
-            'window.addEventListener("resize", function(){{'
-            'Plotly.Plots.resize(document.getElementById("{id}"));}});'
-            '</script>'
-        ).format(id=plotdivid)
+        resize_script = get_resize_script(plotdivid)
 
     if output_type == 'file':
         with open(filename, 'w') as f:
